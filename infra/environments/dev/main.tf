@@ -34,6 +34,18 @@ module "cosmosdb" {
   environment          = var.environment
 }
 
+
+# Week 2: Azure AI Search (Free tier — hybrid keyword + vector search, no semantic ranking)
+module "search" {
+  source = "../../modules/search"
+
+  resource_group_name = data.azurerm_resource_group.main.name
+  location             = var.location # eastus — free tier default
+  project_name         = var.project_name
+  environment          = var.environment
+  sku                  = "free"
+}
+
 output "resource_group_id" {
   value = data.azurerm_resource_group.main.id
 }
@@ -69,4 +81,9 @@ output "cosmosdb_endpoint" {
 
 output "cosmosdb_database_name" {
   value = module.cosmosdb.cosmosdb_database_name
+}
+
+
+output "search_service_endpoint" {
+  value = module.search.search_service_endpoint
 }
