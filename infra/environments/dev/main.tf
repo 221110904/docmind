@@ -46,6 +46,17 @@ module "search" {
   sku                  = "free"
 }
 
+
+# Week 2: Azure OpenAI — GPT-4o + embeddings
+module "openai" {
+  source = "../../modules/openai"
+
+  resource_group_name = data.azurerm_resource_group.main.name
+  location             = var.location
+  project_name         = var.project_name
+  environment          = var.environment
+}
+
 output "resource_group_id" {
   value = data.azurerm_resource_group.main.id
 }
@@ -86,4 +97,9 @@ output "cosmosdb_database_name" {
 
 output "search_service_endpoint" {
   value = module.search.search_service_endpoint
+}
+
+
+output "openai_endpoint" {
+  value = module.openai.openai_endpoint
 }
