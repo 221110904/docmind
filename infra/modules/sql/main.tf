@@ -59,9 +59,9 @@ resource "azurerm_mssql_firewall_rule" "allow_azure_services" {
 # Optional: allow YOUR current machine to connect directly (for local development / running migrations by hand).
 # Only created if you pass in your IP via allowed_client_ip.
 resource "azurerm_mssql_firewall_rule" "allow_dev_machine" {
-  count             = var.allowed_client_ip != "" ? 1 : 0
-  name              = "AllowDevMachine"
-  server_id         = azurerm_mssql_server.main.id
-  start_ip_address  = var.allowed_client_ip
-  end_ip_address    = var.allowed_client_ip
+  count            = var.allowed_client_ip != "" ? 1 : 0
+  name             = "AllowDevMachine"
+  server_id        = azurerm_mssql_server.main.id
+  start_ip_address = var.allowed_client_ip
+  end_ip_address   = var.allowed_client_ip
 }

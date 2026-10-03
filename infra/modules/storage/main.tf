@@ -8,11 +8,11 @@ resource "random_string" "suffix" {
 
 resource "azurerm_storage_account" "documents" {
   # Storage account names: lowercase letters/numbers only, 3-24 chars, must be globally unique
-  name                     = "${var.project_name}doc${random_string.suffix.result}"
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS" # Locally redundant — cheapest option, fine for a dev/demo project
+  name                            = "${var.project_name}doc${random_string.suffix.result}"
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
+  account_tier                    = "Standard"
+  account_replication_type        = "LRS" # Locally redundant — cheapest option, fine for a dev/demo project
   allow_nested_items_to_be_public = false
 
   # Blob versioning helps if you accidentally overwrite/delete an uploaded document

@@ -7,9 +7,9 @@ module "storage" {
   source = "../../modules/storage"
 
   resource_group_name = data.azurerm_resource_group.main.name
-  location             = data.azurerm_resource_group.main.location
-  project_name         = var.project_name
-  environment          = var.environment
+  location            = data.azurerm_resource_group.main.location
+  project_name        = var.project_name
+  environment         = var.environment
 }
 
 # Week 2: Azure SQL Database for users/roles
@@ -17,10 +17,10 @@ module "sql" {
   source = "../../modules/sql"
 
   resource_group_name = data.azurerm_resource_group.main.name
-  location             = var.sql_location
-  project_name         = var.project_name
-  environment          = var.environment
-  allowed_client_ip    = var.my_ip_address
+  location            = var.sql_location
+  project_name        = var.project_name
+  environment         = var.environment
+  allowed_client_ip   = var.my_ip_address
 }
 
 
@@ -29,9 +29,9 @@ module "cosmosdb" {
   source = "../../modules/cosmosdb"
 
   resource_group_name = data.azurerm_resource_group.main.name
-  location             = var.sql_location
-  project_name         = var.project_name
-  environment          = var.environment
+  location            = var.sql_location
+  project_name        = var.project_name
+  environment         = var.environment
 }
 
 
@@ -40,10 +40,10 @@ module "search" {
   source = "../../modules/search"
 
   resource_group_name = data.azurerm_resource_group.main.name
-  location             = var.location # eastus — free tier default
-  project_name         = var.project_name
-  environment          = var.environment
-  sku                  = "free"
+  location            = var.location # eastus — free tier default
+  project_name        = var.project_name
+  environment         = var.environment
+  sku                 = "free"
 }
 
 
@@ -52,9 +52,9 @@ module "openai" {
   source = "../../modules/openai"
 
   resource_group_name = data.azurerm_resource_group.main.name
-  location             = var.location
-  project_name         = var.project_name
-  environment          = var.environment
+  location            = var.location
+  project_name        = var.project_name
+  environment         = var.environment
 }
 
 output "resource_group_id" {

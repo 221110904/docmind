@@ -15,7 +15,7 @@ terraform {
   # Remote state backend — points at the storage account you created via Azure CLI.
   # Fill in the values below (or pass them via `terraform init -backend-config=...`)
   backend "azurerm" {
-    resource_group_name = "docmind-rg"
+    resource_group_name  = "docmind-rg"
     storage_account_name = "docmindtfstate45344"
     container_name       = "tfstate"
     key                  = "dev.terraform.tfstate"
