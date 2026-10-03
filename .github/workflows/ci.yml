@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  infra-validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform fmt check
+        working-directory: infra/environments/dev
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend — validate only)
+        working-directory: infra/environments/dev
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: infra/environments/dev
+        run: terraform validate
+
+  backend-ci:
+    name: Backend Lint & Test (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Placeholder — backend code added in Week 3
+        run: echo "Backend CI steps will be added once FastAPI app exists (Week 3)"
+
+  frontend-ci:
+    name: Frontend Lint & Test (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Placeholder — frontend code added in Week 7
+        run: echo "Frontend CI steps will be added once React app exists (Week 7)"
