@@ -33,3 +33,9 @@ variable "my_ip_address" {
   type        = string
   default     = ""
 }
+
+variable "enable_sql" {
+  description = "Set to true to create Azure SQL. Parked (false) by default to avoid idle charges."
+  type        = bool
+  default     = false
+}

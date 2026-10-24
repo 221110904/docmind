@@ -14,6 +14,7 @@ module "storage" {
 
 # Week 2: Azure SQL Database for users/roles
 module "sql" {
+  count  = var.enable_sql ? 1 : 0
   source = "../../modules/sql"
 
   resource_group_name = data.azurerm_resource_group.main.name
@@ -74,15 +75,15 @@ output "documents_container_name" {
 }
 
 output "sql_server_fqdn" {
-  value = module.sql.sql_server_fqdn
+  value = one(module.sql[*].sql_server_fqdn)
 }
 
 output "sql_database_name" {
-  value = module.sql.sql_database_name
+  value = one(module.sql[*].sql_database_name)
 }
 
 output "sql_admin_username" {
-  value = module.sql.sql_admin_username
+  value = one(module.sql[*].sql_admin_username)
 }
 
 

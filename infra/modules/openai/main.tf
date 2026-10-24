@@ -22,6 +22,7 @@ resource "azurerm_cognitive_account" "main" {
 resource "azurerm_cognitive_deployment" "gpt4o" {
   name                 = "gpt-4o"
   cognitive_account_id = azurerm_cognitive_account.main.id
+  rai_policy_name      = "Microsoft.DefaultV2"
 
   model {
     format  = "OpenAI"
