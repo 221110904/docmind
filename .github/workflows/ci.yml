@@ -1,5 +1,6 @@
 name: CI
 
+# Runs on every push and pull request targeting main.
 on:
   push:
     branches: [main]
@@ -23,7 +24,7 @@ jobs:
         working-directory: infra/environments/dev
         run: terraform fmt -check -recursive
 
-      - name: Terraform init (no backend — validate only)
+      - name: Terraform init (no backend, validate only)
         working-directory: infra/environments/dev
         run: terraform init -backend=false
 
@@ -32,14 +33,25 @@ jobs:
         run: terraform validate
 
   backend-ci:
-    name: Backend Lint & Test (placeholder)
+    name: Backend Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Placeholder — backend code added in Week 3
-        run: echo "Backend CI steps will be added once FastAPI app exists (Week 3)"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -q
 
   frontend-ci:
     name: Frontend Lint & Test (placeholder)
@@ -48,5 +60,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Placeholder — frontend code added in Week 7
-        run: echo "Frontend CI steps will be added once React app exists (Week 7)"
+      - name: Placeholder, frontend code is added in Week 7
+        run: echo "Frontend CI steps will be added once the React app exists (Week 7)"

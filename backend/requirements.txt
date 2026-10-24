@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
 python-multipart
-azure-storage-blob
 pydantic-settings
+sqlalchemy
+azure-storage-blob

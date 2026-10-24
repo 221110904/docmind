@@ -32,3 +32,6 @@ Thumbs.db
 *.pem
 *secrets*
 azure-credentials.json
+
+backend/data/
+backend/*.db
