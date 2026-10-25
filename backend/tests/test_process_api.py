@@ -56,3 +56,17 @@ def test_damaged_file_is_marked_failed_with_reason(client):
 def test_process_unknown_document_returns_404(client):
     assert client.post("/documents/nope/process").status_code == 404
     assert client.get("/documents/nope/text").status_code == 404
+
+
+def test_ocr_service_failure_marks_the_document_failed_with_a_reason(client):
+    from app.ocr import OcrEngine, OcrError
+
+    class Broken(OcrEngine):
+        def read(self, data, content_type, pages=None):
+            raise OcrError("OCR service rate limit or monthly free quota reached.")
+
+    app.dependency_overrides[get_ocr] = lambda: Broken()
+    doc_id = upload(client, "scan.pdf", h.make_blank_pdf(), "application/pdf")
+    result = client.post(f"/documents/{doc_id}/process").json()
+    assert result["status"] == "failed"
+    assert "quota" in result["status_detail"]

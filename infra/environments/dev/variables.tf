@@ -39,3 +39,9 @@ variable "enable_sql" {
   type        = bool
   default     = false
 }
+
+variable "enable_document_intelligence" {
+  description = "Create Azure Document Intelligence (free F0 tier). Set to false to remove it."
+  type        = bool
+  default     = true
+}

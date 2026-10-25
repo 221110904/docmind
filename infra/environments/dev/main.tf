@@ -104,3 +104,23 @@ output "search_service_endpoint" {
 output "openai_endpoint" {
   value = module.openai.openai_endpoint
 }
+
+# Week 4: Document Intelligence for OCR (free F0 tier)
+module "documentintelligence" {
+  count  = var.enable_document_intelligence ? 1 : 0
+  source = "../../modules/documentintelligence"
+
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = var.location
+  project_name        = var.project_name
+  environment         = var.environment
+}
+
+output "document_intelligence_endpoint" {
+  value = one(module.documentintelligence[*].endpoint)
+}
+
+output "document_intelligence_key" {
+  value     = one(module.documentintelligence[*].primary_key)
+  sensitive = true
+}

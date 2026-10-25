@@ -4,6 +4,7 @@ python-multipart
 pydantic-settings
 sqlalchemy
 azure-storage-blob
+azure-ai-documentintelligence
 pypdf
 python-docx
 python-pptx

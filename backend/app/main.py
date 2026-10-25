@@ -12,7 +12,7 @@ from app.config import settings
 from app.db import engine, get_db, init_db
 from app.extraction import ExtractionError, extract
 from app.models import Document, DocumentSegment, Workspace
-from app.ocr import OcrEngine, OcrUnavailable, get_ocr
+from app.ocr import OcrEngine, OcrError, OcrUnavailable, get_ocr
 from app.storage import Storage, get_storage
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".png", ".jpg", ".jpeg"}
@@ -151,7 +151,7 @@ def process_document(
         document.status = "needs_ocr"
         document.status_detail = "This file needs OCR, which is not configured yet."
         segments = []
-    except ExtractionError as exc:
+    except (ExtractionError, OcrError) as exc:
         document.status, document.status_detail = "failed", str(exc)[:500]
         segments = []
     else:

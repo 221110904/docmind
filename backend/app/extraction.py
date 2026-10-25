@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import PurePosixPath
 
-from app.ocr import OcrEngine, OcrUnavailable, Segment
+from app.ocr import OcrEngine, OcrError, OcrUnavailable, Segment
 
 # A PDF page with fewer characters than this is treated as a scan and sent to OCR
 MIN_TEXT_CHARS_PER_PAGE = 20
@@ -31,7 +31,7 @@ def extract(data: bytes, filename: str, ocr: OcrEngine) -> list[Segment]:
             segments = _image(data, ext, ocr)
         else:
             raise ExtractionError(f"Unsupported file type: {ext or 'none'}")
-    except (ExtractionError, OcrUnavailable):
+    except (ExtractionError, OcrUnavailable, OcrError):
         raise
     except Exception as exc:  # damaged or password-protected files raise many types
         raise ExtractionError(

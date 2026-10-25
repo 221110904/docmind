@@ -19,5 +19,14 @@ class Settings(BaseSettings):
 
     max_upload_mb: int = 25
 
+    # OCR: "none" leaves scans and images waiting; "azure" uses Document Intelligence
+    ocr_backend: str = "none"
+    document_intelligence_endpoint: str = ""
+    document_intelligence_key: str = ""
+    # The free (F0) tier reads only 2 pages per request and accepts 4 MB at most,
+    # so scanned PDFs are sent in small batches. Raise both limits on a paid tier.
+    ocr_pages_per_request: int = 2
+    ocr_max_request_mb: int = 4
+
 
 settings = Settings()
