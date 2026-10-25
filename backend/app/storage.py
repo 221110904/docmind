@@ -12,6 +12,9 @@ class Storage(ABC):
     def save(self, name: str, data: bytes, content_type: str) -> None: ...
 
     @abstractmethod
+    def read(self, name: str) -> bytes: ...
+
+    @abstractmethod
     def list_files(self) -> list[dict]: ...
 
 
@@ -32,6 +35,9 @@ class LocalStorage(Storage):
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "xb") as f:  # "x" fails if the file exists: never overwrite
             f.write(data)
+
+    def read(self, name: str) -> bytes:
+        return self._path(name).read_bytes()
 
     def list_files(self) -> list[dict]:
         return [
@@ -58,6 +64,9 @@ class AzureBlobStorage(Storage):
             overwrite=False,
             content_settings=ContentSettings(content_type=content_type),
         )
+
+    def read(self, name: str) -> bytes:
+        return self._container.download_blob(name).readall()
 
     def list_files(self) -> list[dict]:
         return [{"name": b.name, "size": b.size} for b in self._container.list_blobs()]

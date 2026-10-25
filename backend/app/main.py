@@ -5,12 +5,14 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, field_validator
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import engine, get_db, init_db
-from app.models import Document, Workspace
+from app.extraction import ExtractionError, extract
+from app.models import Document, DocumentSegment, Workspace
+from app.ocr import OcrEngine, OcrUnavailable, get_ocr
 from app.storage import Storage, get_storage
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".png", ".jpg", ".jpeg"}
@@ -34,6 +36,7 @@ class DocumentOut(BaseModel):
     content_type: str
     size_bytes: int
     status: str
+    status_detail: str | None = None
     created_at: datetime
 
     @field_validator("created_at")
@@ -106,3 +109,78 @@ def get_document(document_id: str, db: Session = Depends(get_db)):
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found.")
     return document
+
+
+class SegmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    number: int
+    label: str
+    text: str
+    source: str
+
+
+class ProcessOut(BaseModel):
+    id: str
+    status: str
+    status_detail: str | None
+    segment_count: int
+
+
+@app.post("/documents/{document_id}/process", response_model=ProcessOut)
+def process_document(
+    document_id: str,
+    storage: Storage = Depends(get_storage),
+    ocr: OcrEngine = Depends(get_ocr),
+    db: Session = Depends(get_db),
+):
+    """Extract the text of an uploaded document (OCR is used for scans and images)."""
+    document = db.get(Document, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    document.status, document.status_detail = "processing", None
+    db.commit()
+
+    # Processing again replaces any earlier result
+    db.execute(delete(DocumentSegment).where(DocumentSegment.document_id == document_id))
+
+    try:
+        segments = extract(storage.read(document.blob_name), document.filename, ocr)
+    except OcrUnavailable:
+        document.status = "needs_ocr"
+        document.status_detail = "This file needs OCR, which is not configured yet."
+        segments = []
+    except ExtractionError as exc:
+        document.status, document.status_detail = "failed", str(exc)[:500]
+        segments = []
+    else:
+        document.status = "extracted"
+        db.add_all(
+            DocumentSegment(
+                document_id=document_id,
+                number=s.number,
+                label=s.label,
+                text=s.text,
+                source=s.source,
+            )
+            for s in segments
+        )
+    db.commit()
+    return ProcessOut(
+        id=document_id,
+        status=document.status,
+        status_detail=document.status_detail,
+        segment_count=len(segments),
+    )
+
+
+@app.get("/documents/{document_id}/text", response_model=list[SegmentOut])
+def get_document_text(document_id: str, db: Session = Depends(get_db)):
+    if db.get(Document, document_id) is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return db.scalars(
+        select(DocumentSegment)
+        .where(DocumentSegment.document_id == document_id)
+        .order_by(DocumentSegment.number)
+    ).all()

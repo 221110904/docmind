@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -48,7 +48,21 @@ class Document(Base):
     blob_name: Mapped[str] = mapped_column(String(512))
     content_type: Mapped[str] = mapped_column(String(255))
     size_bytes: Mapped[int]
-    # uploaded -> processing -> indexed (or failed); the later weeks drive this
+    # uploaded -> processing -> extracted -> indexed, or needs_ocr / failed
     status: Mapped[str] = mapped_column(String(20), default="uploaded")
+    status_detail: Mapped[str | None] = mapped_column(String(500))  # why it failed
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DocumentSegment(Base):
+    """Text extracted from a document, one row per page, slide or sheet."""
+
+    __tablename__ = "document_segments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"), index=True)
+    number: Mapped[int]
+    label: Mapped[str] = mapped_column(String(255))
+    text: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(10))  # "text" or "ocr"

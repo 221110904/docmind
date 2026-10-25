@@ -4,3 +4,7 @@ python-multipart
 pydantic-settings
 sqlalchemy
 azure-storage-blob
+pypdf
+python-docx
+python-pptx
+openpyxl
