@@ -104,3 +104,42 @@ class FakeOcr(OcrEngine):
         if pages is None:  # an image
             return [Segment(1, "Image", "text read from the image", "ocr")]
         return [Segment(n, f"Page {n}", f"ocr text of page {n}", "ocr") for n in pages]
+
+
+# ---- network interception for the real Azure SDKs -------------------------------
+import io as _io
+import json as _json
+from contextlib import contextmanager as _contextmanager
+from unittest import mock as _mock
+
+import requests as _requests
+import urllib3 as _urllib3
+
+
+@_contextmanager
+def intercept_azure_http(handler):
+    """Fake the network under the Azure SDKs.
+
+    handler(method, url, body) must return (status_code, json_body_or_None).
+    Yields the list of (method, url, body) requests the SDK actually sent.
+    """
+    seen = []
+
+    def fake_request(self, method, url, **kwargs):
+        raw = kwargs.get("data") if kwargs.get("data") is not None else kwargs.get("json")
+        if isinstance(raw, bytes):
+            raw = raw.decode()
+        body = _json.loads(raw) if isinstance(raw, str) and raw else raw
+        seen.append((method.upper(), url, body))
+        status, payload = handler(method.upper(), url, body)
+        content = _json.dumps(payload).encode() if payload is not None else b""
+        response = _requests.Response()
+        response.status_code = status
+        response.raw = _urllib3.HTTPResponse(
+            body=_io.BytesIO(content), status=status, preload_content=False
+        )
+        response.headers["Content-Type"] = "application/json"
+        return response
+
+    with _mock.patch("requests.Session.request", fake_request):
+        yield seen

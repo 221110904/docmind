@@ -56,6 +56,7 @@ module "openai" {
   location            = var.location
   project_name        = var.project_name
   environment         = var.environment
+  embedding_capacity  = 50
 }
 
 output "resource_group_id" {

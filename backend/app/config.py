@@ -28,5 +28,24 @@ class Settings(BaseSettings):
     ocr_pages_per_request: int = 2
     ocr_max_request_mb: int = 4
 
+    # Chunking (about 4 characters per token, so 2000 characters is roughly 500 tokens)
+    chunk_chars: int = 2000
+    chunk_overlap_chars: int = 200
+
+    # Embeddings: "fake" is a local stand-in (not semantic); "azure" uses Azure OpenAI.
+    # 1024 numbers per vector keeps the free search tier (50 MB) roomy; the model
+    # supports 3072. Changing this later means re-creating the index and re-embedding.
+    embedding_backend: str = "fake"
+    embedding_dimensions: int = 1024
+    azure_openai_endpoint: str = ""
+    azure_openai_key: str = ""
+    azure_openai_embedding_deployment: str = "text-embedding-3-large"
+
+    # Search index: "memory" is a local stand-in; "azure" uses Azure AI Search
+    search_backend: str = "memory"
+    azure_search_endpoint: str = ""
+    azure_search_key: str = ""
+    azure_search_index: str = "docmind-chunks"
+
 
 settings = Settings()
