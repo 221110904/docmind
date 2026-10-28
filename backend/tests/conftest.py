@@ -16,6 +16,7 @@ os.environ.update(
     AZURE_SEARCH_ENDPOINT="",
     AZURE_SEARCH_KEY="",
     QA_BACKEND="fake",
+    CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173",
 )
 
 import pytest

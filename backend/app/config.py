@@ -52,5 +52,8 @@ class Settings(BaseSettings):
     azure_openai_chat_deployment: str = "gpt-4o"
     qa_max_context_chars: int = 12000
 
+    # Websites allowed to call the API from a browser (comma-separated)
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
 
 settings = Settings()

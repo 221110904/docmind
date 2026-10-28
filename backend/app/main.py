@@ -18,6 +18,7 @@ from app.ocr import OcrEngine, OcrError, OcrUnavailable, Segment, get_ocr
 from app.search_index import IndexedChunk, SearchIndex, SearchIndexError, get_search_index
 from app.storage import Storage, get_storage
 from app.qa import NOT_FOUND, Answerer, Passage, QaError, get_answerer
+from fastapi.middleware.cors import CORSMiddleware
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".png", ".jpg", ".jpeg"}
 
@@ -29,6 +30,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="DocMind API", version="0.2.0", lifespan=lifespan)
+
+     app.add_middleware(
+         CORSMiddleware,
+         allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+         allow_methods=["*"],
+         allow_headers=["*"],
+     )
 
 
 class DocumentOut(BaseModel):

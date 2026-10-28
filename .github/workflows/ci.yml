@@ -53,12 +53,21 @@ jobs:
       - name: Run tests
         run: pytest -q
 
-  frontend-ci:
-    name: Frontend Lint & Test (placeholder)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Placeholder, frontend code is added in Week 7
-        run: echo "Frontend CI steps will be added once the React app exists (Week 7)"
+     frontend-ci:
+       name: Frontend Typecheck, Test & Build
+       runs-on: ubuntu-latest
+       defaults:
+         run:
+           working-directory: frontend
+       steps:
+         - name: Checkout code
+           uses: actions/checkout@v4
+         - uses: actions/setup-node@v4
+           with:
+             node-version: 22
+             cache: npm
+             cache-dependency-path: frontend/package-lock.json
+         - run: npm ci
+         - run: npm run typecheck
+         - run: npm test
+         - run: npm run build
