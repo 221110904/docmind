@@ -32,15 +32,31 @@ async function errorMessage(response: Response): Promise<string> {
   return `The request failed (HTTP ${response.status}).`;
 }
 
+type TokenProvider = () => Promise<string | null>;
+let tokenProvider: TokenProvider | null = null;
+
+/** The sign-in layer registers a function that returns a fresh token for each request. */
+export function setTokenProvider(provider: TokenProvider | null): void {
+  tokenProvider = provider;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  if (tokenProvider) {
+    const token = await tokenProvider();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+  }
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, init);
+    response = await fetch(`${API_URL}${path}`, { ...init, headers });
   } catch {
     throw new ApiError(
       `Can't reach the DocMind API at ${API_URL}. Start the backend and try again.`,
       0,
     );
+  }
+  if (response.status === 401 && tokenProvider) {
+    throw new ApiError("Your session has expired. Sign in again.", 401);
   }
   if (!response.ok) throw new ApiError(await errorMessage(response), response.status);
   if (response.status === 204) return undefined as T; // success with no body

@@ -1,13 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError } from "./api";
+import { api, ApiError, setTokenProvider } from "./api";
 
 function reply(status: number, body: unknown) {
-  return vi.fn().mockResolvedValue(
+  // A new Response for every call: a body can only be read once
+  return vi.fn().mockImplementation(async () =>
     new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } }),
   );
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  setTokenProvider(null);
+});
 
 describe("api", () => {
   it("leaves document_id out of the request when no document is chosen", async () => {
@@ -66,5 +70,48 @@ describe("api", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toMatch(/\/documents\/d1$/);
     expect(init.method).toBe("DELETE");
+  });
+
+  it("sends the sign-in token with every request once signed in", async () => {
+    const fetchMock = reply(200, []);
+    vi.stubGlobal("fetch", fetchMock);
+    setTokenProvider(async () => "token-123");
+    await api.listDocuments();
+    await api.search("usb", 5);
+    for (const call of fetchMock.mock.calls) {
+      expect(new Headers(call[1].headers).get("Authorization")).toBe("Bearer token-123");
+    }
+  });
+
+  it("keeps the JSON content type when it adds the token", async () => {
+    const fetchMock = reply(200, []);
+    vi.stubGlobal("fetch", fetchMock);
+    setTokenProvider(async () => "token-123");
+    await api.search("usb", 5);
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get("Content-Type")).toBe(
+      "application/json",
+    );
+  });
+
+  it("sends no Authorization header when nobody is signed in", async () => {
+    const fetchMock = reply(200, []);
+    vi.stubGlobal("fetch", fetchMock);
+    await api.listDocuments();
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).has("Authorization")).toBe(false);
+  });
+
+  it("tells the person their session ended when the server refuses the token", async () => {
+    vi.stubGlobal("fetch", reply(401, { detail: "The sign-in token is not valid." }));
+    setTokenProvider(async () => "stale");
+    await expect(api.listDocuments()).rejects.toMatchObject({
+      message: "Your session has expired. Sign in again.",
+      status: 401,
+    });
+  });
+
+  it("does not ask for a token when it cannot be had", async () => {
+    vi.stubGlobal("fetch", reply(200, []));
+    setTokenProvider(async () => null);
+    await expect(api.listDocuments()).resolves.toEqual([]);
   });
 });

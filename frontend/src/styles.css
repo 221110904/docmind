@@ -110,8 +110,18 @@ a {
   border-bottom-color: var(--action);
 }
 
-.connection {
+.bar-end {
   margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user {
+  font-weight: 500;
+}
+
+.connection {
   color: var(--ink-soft);
   font-size: 13px;
   display: flex;
@@ -135,6 +145,17 @@ a {
 
 .connection[data-state="offline"]::before {
   background: var(--bad);
+}
+
+/* Sign in */
+
+.signin {
+  max-width: 460px;
+  margin: 72px 0 0;
+}
+
+.signin .primary {
+  margin-inline-start: 0;
 }
 
 /* Page */
@@ -539,7 +560,8 @@ textarea {
     gap: 12px;
   }
 
-  .connection {
+  .connection,
+  .user {
     display: none;
   }
 

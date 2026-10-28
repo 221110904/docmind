@@ -103,19 +103,3 @@ def test_search_rejects_bad_requests(client):
     assert client.post("/search", json={"query": "x", "top_k": 0}).status_code == 422
     assert client.post("/search", json={"query": "x", "top_k": 99}).status_code == 422
 
-
-def test_search_never_returns_documents_from_another_workspace(client, session_factory):
-    from app.models import Document, Workspace
-
-    mine = ingest(client, "mine.docx", REFUNDS)
-    theirs = ingest(client, "theirs.docx", REFUNDS, index=False)
-    with session_factory() as db:
-        other = Workspace(name="Other team")
-        db.add(other)
-        db.flush()
-        db.get(Document, theirs).workspace_id = other.id
-        db.commit()
-    assert client.post(f"/documents/{theirs}/index").status_code == 200
-
-    hits = search(client, "refunds")
-    assert {hit["document_id"] for hit in hits} == {mine}

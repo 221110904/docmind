@@ -4,21 +4,22 @@ from pathlib import PurePosixPath
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.auth import Caller, get_caller
 from app.chunking import chunk_segments
 from app.config import settings
 from app.db import engine, get_db, init_db
 from app.embeddings import Embedder, EmbeddingError, get_embedder
 from app.extraction import ExtractionError, extract
-from app.models import Document, DocumentSegment, Workspace
+from app.models import Document, DocumentSegment
 from app.ocr import OcrEngine, OcrError, OcrUnavailable, Segment, get_ocr
+from app.qa import NOT_FOUND, Answerer, Passage, QaError, get_answerer
 from app.search_index import IndexedChunk, SearchIndex, SearchIndexError, get_search_index
 from app.storage import Storage, get_storage
-from app.qa import NOT_FOUND, Answerer, Passage, QaError, get_answerer
-from fastapi.middleware.cors import CORSMiddleware
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".png", ".jpg", ".jpeg"}
 
@@ -29,7 +30,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="DocMind API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="DocMind API", version="0.3.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 class DocumentOut(BaseModel):
@@ -59,14 +59,34 @@ class DocumentOut(BaseModel):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+def owned_document(db: Session, caller: Caller, document_id: str) -> Document:
+    """The caller's document, or a 404. Someone else's document looks exactly like a missing one."""
+    document = db.get(Document, document_id)
+    if document is None or document.workspace_id != caller.workspace.id:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return document
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "docmind-api"}
 
 
+class MeOut(BaseModel):
+    email: str
+    name: str | None
+
+
+@app.get("/me", response_model=MeOut)
+def me(caller: Caller = Depends(get_caller)):
+    """Who the API thinks you are. Handy for checking that sign-in works."""
+    return MeOut(email=caller.user.email, name=caller.user.display_name)
+
+
 @app.post("/documents/upload", status_code=201, response_model=DocumentOut)
 def upload_document(
     file: UploadFile,
+    caller: Caller = Depends(get_caller),
     storage: Storage = Depends(get_storage),
     db: Session = Depends(get_db),
 ):
@@ -89,10 +109,6 @@ def upload_document(
     if not data:
         raise HTTPException(status_code=400, detail="File is empty.")
 
-    workspace = db.scalars(select(Workspace).order_by(Workspace.id)).first()
-    if workspace is None:
-        raise HTTPException(status_code=500, detail="No workspace configured.")
-
     document_id = uuid4().hex
     blob_name = f"{document_id}/{safe_name}"
     content_type = file.content_type or "application/octet-stream"
@@ -100,11 +116,12 @@ def upload_document(
 
     document = Document(
         id=document_id,
-        workspace_id=workspace.id,
+        workspace_id=caller.workspace.id,
         filename=safe_name,
         blob_name=blob_name,
         content_type=content_type,
         size_bytes=len(data),
+        uploaded_by=caller.user.id,
     )
     db.add(document)
     db.commit()
@@ -112,16 +129,19 @@ def upload_document(
 
 
 @app.get("/documents", response_model=list[DocumentOut])
-def list_documents(db: Session = Depends(get_db)):
-    return db.scalars(select(Document).order_by(Document.created_at.desc())).all()
+def list_documents(caller: Caller = Depends(get_caller), db: Session = Depends(get_db)):
+    return db.scalars(
+        select(Document)
+        .where(Document.workspace_id == caller.workspace.id)
+        .order_by(Document.created_at.desc())
+    ).all()
 
 
 @app.get("/documents/{document_id}", response_model=DocumentOut)
-def get_document(document_id: str, db: Session = Depends(get_db)):
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    return document
+def get_document(
+    document_id: str, caller: Caller = Depends(get_caller), db: Session = Depends(get_db)
+):
+    return owned_document(db, caller, document_id)
 
 
 class SegmentOut(BaseModel):
@@ -143,15 +163,14 @@ class ProcessOut(BaseModel):
 @app.post("/documents/{document_id}/process", response_model=ProcessOut)
 def process_document(
     document_id: str,
+    caller: Caller = Depends(get_caller),
     storage: Storage = Depends(get_storage),
     ocr: OcrEngine = Depends(get_ocr),
     index: SearchIndex = Depends(get_search_index),
     db: Session = Depends(get_db),
 ):
     """Extract the text of an uploaded document (OCR is used for scans and images)."""
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document not found.")
+    document = owned_document(db, caller, document_id)
 
     if document.status == "indexed":
         # The old text is about to be replaced, so its search entries must go too
@@ -197,9 +216,10 @@ def process_document(
 
 
 @app.get("/documents/{document_id}/text", response_model=list[SegmentOut])
-def get_document_text(document_id: str, db: Session = Depends(get_db)):
-    if db.get(Document, document_id) is None:
-        raise HTTPException(status_code=404, detail="Document not found.")
+def get_document_text(
+    document_id: str, caller: Caller = Depends(get_caller), db: Session = Depends(get_db)
+):
+    owned_document(db, caller, document_id)
     return db.scalars(
         select(DocumentSegment)
         .where(DocumentSegment.document_id == document_id)
@@ -216,14 +236,13 @@ class IndexOut(BaseModel):
 @app.post("/documents/{document_id}/index", response_model=IndexOut)
 def index_document(
     document_id: str,
+    caller: Caller = Depends(get_caller),
     embedder: Embedder = Depends(get_embedder),
     index: SearchIndex = Depends(get_search_index),
     db: Session = Depends(get_db),
 ):
     """Split the extracted text into chunks, embed them, and store them for search."""
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document not found.")
+    document = owned_document(db, caller, document_id)
     segments = db.scalars(
         select(DocumentSegment)
         .where(DocumentSegment.document_id == document_id)
@@ -288,23 +307,21 @@ class SearchHitOut(BaseModel):
 @app.post("/search", response_model=list[SearchHitOut])
 def search(
     request: SearchRequest,
+    caller: Caller = Depends(get_caller),
     embedder: Embedder = Depends(get_embedder),
     index: SearchIndex = Depends(get_search_index),
-    db: Session = Depends(get_db),
 ):
-    """Hybrid search (keywords and meaning) over everything indexed in the workspace."""
-    workspace = db.scalars(select(Workspace).order_by(Workspace.id)).first()
-    if workspace is None:
-        raise HTTPException(status_code=500, detail="No workspace configured.")
+    """Hybrid search (keywords and meaning) over the caller's indexed documents."""
     try:
         vector = embedder.embed([request.query])[0]
         hits = index.search(
             request.query, vector, request.top_k,
-            workspace_id=str(workspace.id), document_id=request.document_id,
+            workspace_id=str(caller.workspace.id), document_id=request.document_id,
         )
     except (EmbeddingError, SearchIndexError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return [SearchHitOut(**{k: getattr(h, k) for k in SearchHitOut.model_fields}) for h in hits]
+
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
@@ -331,20 +348,17 @@ class AskOut(BaseModel):
 @app.post("/ask", response_model=AskOut)
 def ask(
     request: AskRequest,
+    caller: Caller = Depends(get_caller),
     embedder: Embedder = Depends(get_embedder),
     index: SearchIndex = Depends(get_search_index),
     answerer: Answerer = Depends(get_answerer),
-    db: Session = Depends(get_db),
 ):
-    """Answer a question from the indexed documents, citing the sources used."""
-    workspace = db.scalars(select(Workspace).order_by(Workspace.id)).first()
-    if workspace is None:
-        raise HTTPException(status_code=500, detail="No workspace configured.")
+    """Answer a question from the caller's indexed documents, citing the sources used."""
     try:
         vector = embedder.embed([request.question])[0]
         hits = index.search(
             request.question, vector, request.top_k,
-            workspace_id=str(workspace.id), document_id=request.document_id,
+            workspace_id=str(caller.workspace.id), document_id=request.document_id,
         )
         if not hits:
             return AskOut(answer=NOT_FOUND, found=False, sources=[])
@@ -362,17 +376,17 @@ def ask(
     sources = [SourceOut(**vars(by_number[n])) for n in result.cited]
     return AskOut(answer=result.text, found=result.found, sources=sources)
 
+
 @app.delete("/documents/{document_id}", status_code=204)
 def delete_document(
     document_id: str,
+    caller: Caller = Depends(get_caller),
     storage: Storage = Depends(get_storage),
     index: SearchIndex = Depends(get_search_index),
     db: Session = Depends(get_db),
 ):
     """Remove a document: its search entries, its stored file and its extracted text."""
-    document = db.get(Document, document_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail="Document not found.")
+    document = owned_document(db, caller, document_id)
     # Outside services go first. If one fails, the document stays listed and can be retried.
     try:
         index.delete_document(document_id)

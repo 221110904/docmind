@@ -36,6 +36,8 @@ class Workspace(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+    # The user this workspace belongs to; empty for the shared starter workspace
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

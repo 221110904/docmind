@@ -55,5 +55,12 @@ class Settings(BaseSettings):
     # Websites allowed to call the API from a browser (comma-separated)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Login: "none" skips it (local work and tests); "entra" requires a Microsoft token
+    auth_backend: str = "none"
+    entra_tenant_id: str = ""
+    entra_tenant_subdomain: str = ""  # docmindauth, for docmindauth.ciamlogin.com
+    entra_api_client_id: str = ""
+    entra_required_scope: str = "access_as_user"
+
 
 settings = Settings()
