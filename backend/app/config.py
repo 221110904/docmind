@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     ocr_pages_per_request: int = 2
     ocr_max_request_mb: int = 4
 
-    # Chunking (about 4 characters per token, so 2000 characters is roughly 500 tokens)
-    chunk_chars: int = 2000
-    chunk_overlap_chars: int = 200
+    # Chunking (about 4 characters per token, so 900 characters is roughly 225 tokens)
+    chunk_chars: int = 900
+    chunk_overlap_chars: int = 100
 
     # Embeddings: "fake" is a local stand-in (not semantic); "azure" uses Azure OpenAI.
     # 1024 numbers per vector keeps the free search tier (50 MB) roomy; the model
