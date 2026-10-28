@@ -31,12 +31,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DocMind API", version="0.2.0", lifespan=lifespan)
 
-     app.add_middleware(
-         CORSMiddleware,
-         allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
-         allow_methods=["*"],
-         allow_headers=["*"],
-     )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 class DocumentOut(BaseModel):
