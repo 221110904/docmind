@@ -15,6 +15,10 @@ class Storage(ABC):
     def read(self, name: str) -> bytes: ...
 
     @abstractmethod
+    def delete(self, name: str) -> None:
+        """Remove a file. Deleting one that is already gone is not an error."""
+
+    @abstractmethod
     def list_files(self) -> list[dict]: ...
 
 
@@ -38,6 +42,16 @@ class LocalStorage(Storage):
 
     def read(self, name: str) -> bytes:
         return self._path(name).read_bytes()
+
+    def delete(self, name: str) -> None:
+        path = self._path(name)
+        path.unlink(missing_ok=True)
+        # Each upload lives in its own folder; tidy it away once it is empty
+        if path.parent != self.base:
+            try:
+                path.parent.rmdir()
+            except OSError:
+                pass  # other files are still in it, or it is already gone
 
     def list_files(self) -> list[dict]:
         return [
@@ -67,6 +81,14 @@ class AzureBlobStorage(Storage):
 
     def read(self, name: str) -> bytes:
         return self._container.download_blob(name).readall()
+
+    def delete(self, name: str) -> None:
+        from azure.core.exceptions import ResourceNotFoundError
+
+        try:
+            self._container.delete_blob(name)
+        except ResourceNotFoundError:
+            pass  # already gone
 
     def list_files(self) -> list[dict]:
         return [{"name": b.name, "size": b.size} for b in self._container.list_blobs()]

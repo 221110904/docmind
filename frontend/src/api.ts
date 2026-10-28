@@ -43,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   if (!response.ok) throw new ApiError(await errorMessage(response), response.status);
+  if (response.status === 204) return undefined as T; // success with no body
   return (await response.json()) as T;
 }
 
@@ -62,6 +63,8 @@ export const api = {
     form.append("file", file);
     return request<DocumentOut>("/documents/upload", { method: "POST", body: form });
   },
+  deleteDocument: (id: string) =>
+    request<void>(`/documents/${encodeURIComponent(id)}`, { method: "DELETE" }),
   processDocument: (id: string) =>
     request<ProcessOut>(`/documents/${encodeURIComponent(id)}/process`, { method: "POST" }),
   indexDocument: (id: string) =>

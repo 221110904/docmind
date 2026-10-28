@@ -365,6 +365,18 @@ textarea {
   background: var(--bad);
 }
 
+.confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.text-button.danger {
+  color: var(--bad);
+}
+
 /* Ask */
 
 .ask {

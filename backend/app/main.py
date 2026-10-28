@@ -361,3 +361,29 @@ def ask(
     by_number = {p.number: p for p in passages}
     sources = [SourceOut(**vars(by_number[n])) for n in result.cited]
     return AskOut(answer=result.text, found=result.found, sources=sources)
+
+@app.delete("/documents/{document_id}", status_code=204)
+def delete_document(
+    document_id: str,
+    storage: Storage = Depends(get_storage),
+    index: SearchIndex = Depends(get_search_index),
+    db: Session = Depends(get_db),
+):
+    """Remove a document: its search entries, its stored file and its extracted text."""
+    document = db.get(Document, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    # Outside services go first. If one fails, the document stays listed and can be retried.
+    try:
+        index.delete_document(document_id)
+    except SearchIndexError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    try:
+        storage.delete(document.blob_name)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Could not delete the stored file: {exc}"[:300]
+        ) from exc
+    db.execute(delete(DocumentSegment).where(DocumentSegment.document_id == document_id))
+    db.delete(document)
+    db.commit()

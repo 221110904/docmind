@@ -38,6 +38,9 @@ function problemWith(file: File): string | null {
 export function Documents({ docs, onChange }: Props) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const nextKey = useRef(1);
   const input = useRef<HTMLInputElement>(null);
 
@@ -76,6 +79,23 @@ export function Documents({ docs, onChange }: Props) {
           onStep,
         ),
       );
+    }
+  }
+
+  async function deleteDocument(doc: DocumentOut) {
+    setDeleting(doc.id);
+    setRowError(null);
+    try {
+      await api.deleteDocument(doc.id);
+      setConfirming(null);
+      await onChange();
+    } catch (error) {
+      setRowError({
+        id: doc.id,
+        message: error instanceof Error ? error.message : "The document could not be deleted.",
+      });
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -162,26 +182,66 @@ export function Documents({ docs, onChange }: Props) {
                   )}
                 </span>
                 {doc.status_detail && <span className="row-sub">{doc.status_detail}</span>}
+                {rowError?.id === doc.id && (
+                  <span className="row-error" role="alert">
+                    {rowError.message}
+                  </span>
+                )}
               </div>
-              <span className="status" data-tone={statusTone(doc.status)}>
-                {statusText(doc.status)}
-              </span>
-              <button
-                type="button"
-                className="text-button"
-                disabled={busy.has(doc.filename)}
-                onClick={() =>
-                  void run(doc.filename, (onStep) =>
-                    processExisting(
-                      doc.id,
-                      { process: api.processDocument, index: api.indexDocument },
-                      onStep,
-                    ),
-                  )
-                }
-              >
-                Read again
-              </button>
+              {confirming === doc.id ? (
+                <div className="confirm" role="group" aria-label={`Delete ${doc.filename}`}>
+                  <span>Delete this document and its search data?</span>
+                  <button
+                    type="button"
+                    className="text-button danger"
+                    disabled={deleting === doc.id}
+                    onClick={() => void deleteDocument(doc)}
+                  >
+                    {deleting === doc.id ? "Deleting…" : "Delete document"}
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={deleting === doc.id}
+                    onClick={() => setConfirming(null)}
+                  >
+                    Keep
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="status" data-tone={statusTone(doc.status)}>
+                    {statusText(doc.status)}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={busy.has(doc.filename)}
+                    onClick={() =>
+                      void run(doc.filename, (onStep) =>
+                        processExisting(
+                          doc.id,
+                          { process: api.processDocument, index: api.indexDocument },
+                          onStep,
+                        ),
+                      )
+                    }
+                  >
+                    Read again
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button danger"
+                    aria-label={`Delete ${doc.filename}`}
+                    onClick={() => {
+                      setRowError(null);
+                      setConfirming(doc.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
             </li>
           ))}
         </ul>

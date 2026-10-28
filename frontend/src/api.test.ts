@@ -58,4 +58,13 @@ describe("api", () => {
     expect(error.status).toBe(0);
     expect(error.message).toContain("Start the backend");
   });
+
+  it("treats a 204 reply as success with nothing to read", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(api.deleteDocument("d1")).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/documents\/d1$/);
+    expect(init.method).toBe("DELETE");
+  });
 });
