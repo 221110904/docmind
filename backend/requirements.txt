@@ -12,3 +12,4 @@ openpyxl
 openai
 azure-search-documents
 PyJWT[crypto]
+pyodbc

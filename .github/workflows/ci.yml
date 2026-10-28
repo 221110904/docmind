@@ -53,6 +53,31 @@ jobs:
       - name: Run tests
         run: pytest -q
 
+  backend-image:
+    name: Backend Container Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t docmind-api backend
+
+      - name: SQL Server driver is installed
+        run: |
+          docker run --rm docmind-api python -c \
+            "import pyodbc; d = pyodbc.drivers(); print(d); assert 'ODBC Driver 18 for SQL Server' in d"
+
+      - name: Container starts and answers /health
+        run: |
+          docker run -d --name api -p 8000:8000 docmind-api
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs api
+          exit 1
+
   frontend-ci:
     name: Frontend Typecheck, Test & Build
     runs-on: ubuntu-latest
