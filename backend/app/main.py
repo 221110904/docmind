@@ -17,6 +17,7 @@ from app.models import Document, DocumentSegment, Workspace
 from app.ocr import OcrEngine, OcrError, OcrUnavailable, Segment, get_ocr
 from app.search_index import IndexedChunk, SearchIndex, SearchIndexError, get_search_index
 from app.storage import Storage, get_storage
+from app.qa import NOT_FOUND, Answerer, Passage, QaError, get_answerer
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".png", ".jpg", ".jpeg"}
 
@@ -295,3 +296,59 @@ def search(
     except (EmbeddingError, SearchIndexError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return [SearchHitOut(**{k: getattr(h, k) for k in SearchHitOut.model_fields}) for h in hits]
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    top_k: int = Field(default=5, ge=1, le=10)
+    document_id: str | None = None
+
+
+class SourceOut(BaseModel):
+    number: int
+    document_id: str
+    filename: str
+    label: str
+    page_number: int
+    chunk_index: int
+    content: str
+
+
+class AskOut(BaseModel):
+    answer: str
+    found: bool
+    sources: list[SourceOut]
+
+
+@app.post("/ask", response_model=AskOut)
+def ask(
+    request: AskRequest,
+    embedder: Embedder = Depends(get_embedder),
+    index: SearchIndex = Depends(get_search_index),
+    answerer: Answerer = Depends(get_answerer),
+    db: Session = Depends(get_db),
+):
+    """Answer a question from the indexed documents, citing the sources used."""
+    workspace = db.scalars(select(Workspace).order_by(Workspace.id)).first()
+    if workspace is None:
+        raise HTTPException(status_code=500, detail="No workspace configured.")
+    try:
+        vector = embedder.embed([request.question])[0]
+        hits = index.search(
+            request.question, vector, request.top_k,
+            workspace_id=str(workspace.id), document_id=request.document_id,
+        )
+        if not hits:
+            return AskOut(answer=NOT_FOUND, found=False, sources=[])
+        passages = [
+            Passage(
+                number=n, document_id=h.document_id, filename=h.filename, label=h.label,
+                page_number=h.page_number, chunk_index=h.chunk_index, content=h.content,
+            )
+            for n, h in enumerate(hits, start=1)
+        ]
+        result = answerer.answer(request.question, passages)
+    except (EmbeddingError, SearchIndexError, QaError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    by_number = {p.number: p for p in passages}
+    sources = [SourceOut(**vars(by_number[n])) for n in result.cited]
+    return AskOut(answer=result.text, found=result.found, sources=sources)

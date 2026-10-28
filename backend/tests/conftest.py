@@ -15,6 +15,7 @@ os.environ.update(
     AZURE_OPENAI_KEY="",
     AZURE_SEARCH_ENDPOINT="",
     AZURE_SEARCH_KEY="",
+    QA_BACKEND="fake",
 )
 
 import pytest
@@ -29,6 +30,7 @@ from app.ocr import NoOcr, get_ocr
 from app.main import app
 from app.search_index import MemoryIndex, get_search_index
 from app.storage import LocalStorage, get_storage
+from app.qa import FakeAnswerer, get_answerer
 
 
 @pytest.fixture
@@ -70,6 +72,7 @@ def client(storage, session_factory, embedder, search_index):
     app.dependency_overrides[get_embedder] = lambda: embedder
     app.dependency_overrides[get_ocr] = lambda: NoOcr()
     app.dependency_overrides[get_search_index] = lambda: search_index
+    app.dependency_overrides[get_answerer] = lambda: FakeAnswerer()
     # Used without "with", so the real startup (real database) does not run
     yield TestClient(app)
     app.dependency_overrides.clear()

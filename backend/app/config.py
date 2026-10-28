@@ -47,5 +47,10 @@ class Settings(BaseSettings):
     azure_search_key: str = ""
     azure_search_index: str = "docmind-chunks"
 
+    # Q&A: "fake" is a local stand-in; "azure" asks the GPT-4o deployment
+    qa_backend: str = "fake"
+    azure_openai_chat_deployment: str = "gpt-4o"
+    qa_max_context_chars: int = 12000
+
 
 settings = Settings()
