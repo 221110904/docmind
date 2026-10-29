@@ -63,10 +63,24 @@ jobs:
       - name: Build image
         run: docker build -t docmind-api backend
 
-      - name: SQL Server driver is installed
+      - name: SQL Server driver loads (every library it needs is present)
         run: |
-          docker run --rm docmind-api python -c \
-            "import pyodbc; d = pyodbc.drivers(); print(d); assert 'ODBC Driver 18 for SQL Server' in d"
+          docker run --rm -i docmind-api python - <<'PY'
+          import pyodbc
+
+          assert "ODBC Driver 18 for SQL Server" in pyodbc.drivers(), pyodbc.drivers()
+          try:
+              pyodbc.connect(
+                  "DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:127.0.0.1,1;"
+                  "UID=a;PWD=b;Encrypt=yes;Connection Timeout=2",
+                  timeout=2,
+              )
+          except pyodbc.Error as error:
+              # Nothing listens there, so a refused connection is the expected result.
+              # "Can't open lib" would mean the driver itself cannot load.
+              assert "Can't open lib" not in str(error), error
+              print("driver loads; connection refused as expected")
+          PY
 
       - name: Container starts and answers /health
         run: |

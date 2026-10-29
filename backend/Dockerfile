@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# unixodbc + Microsoft's driver let SQLAlchemy talk to Azure SQL (pyodbc)
+# unixodbc + Microsoft's driver let SQLAlchemy talk to Azure SQL (pyodbc).
+# Do not purge packages after installing the driver: that removed libraries it needs.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl gnupg ca-certificates unixodbc \
  && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
@@ -15,7 +16,6 @@ RUN apt-get update \
       > /etc/apt/sources.list.d/mssql-release.list \
  && apt-get update \
  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
- && apt-get purge -y --auto-remove curl gnupg \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv
