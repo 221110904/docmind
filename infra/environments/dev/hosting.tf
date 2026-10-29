@@ -236,7 +236,7 @@ resource "azurerm_container_app" "backend" {
   }
 
   lifecycle {
-    ignore_changes = [template[0].container[0].image]
+    ignore_changes = [template[0].container[0].image, workload_profile_name]
 
     precondition {
       condition     = local.database_url != ""

@@ -35,3 +35,5 @@ azure-credentials.json
 
 backend/data/
 backend/*.db
+
+infra/environments/dev/local.auto.tfvars
