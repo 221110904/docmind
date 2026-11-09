@@ -183,7 +183,7 @@ export function Benchmark({ docs, loaded }: Props) {
                     onChange={(e) => setAddText(e.target.value)}
                   />
                 </div>
-                <button type="submit" disabled={!addText.trim()}>
+                <button type="submit" className="secondary" disabled={!addText.trim()}>
                   Add
                 </button>
               </form>
@@ -220,15 +220,25 @@ function Report({ out }: { out: BenchmarkOut }) {
   return (
     <div className="bench-report">
       <h2>3. Result</h2>
-      <p>
-        <strong>{summary.missing}</strong> missing · <strong>{summary.partial}</strong> partly
-        covered · <strong>{summary.covered}</strong> covered, out of {summary.total} points found
-        in the chosen documents.
-      </p>
+      <div className="bench-summary">
+        <div className="tile" data-status="missing">
+          <b>{summary.missing}</b>
+          <span>missing</span>
+        </div>
+        <div className="tile" data-status="partial">
+          <b>{summary.partial}</b>
+          <span>partly covered</span>
+        </div>
+        <div className="tile" data-status="covered">
+          <b>{summary.covered}</b>
+          <span>covered, of {summary.total} points found in the chosen documents</span>
+        </div>
+      </div>
       <p className="muted">
         This is guidance, not a verdict. Check each suggestion against the source before changing
         your document.
       </p>
+      <div className="bench-table-wrap">
       <table className="bench-table">
         <thead>
           <tr>
@@ -288,6 +298,7 @@ function Report({ out }: { out: BenchmarkOut }) {
           ))}
         </tbody>
       </table>
+      </div>
 
       <h3>Sources used</h3>
       <ul>
