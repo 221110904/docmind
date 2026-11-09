@@ -10,6 +10,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.auth import Caller, get_caller
+from app.benchmark_api import router as benchmark_router
 from app.chunking import chunk_segments
 from app.config import settings
 from app.db import engine, get_db, init_db
@@ -38,6 +39,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(benchmark_router)
 
 
 class DocumentOut(BaseModel):
