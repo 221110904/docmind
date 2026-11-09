@@ -14,6 +14,7 @@ Senior Project (SE499), Software Engineering. Built by Faisal Alrabiah and Majed
 - Every citation is checked by the backend. If no valid citation supports an answer, the reply is "not found".
 - Each user signs in and gets a private workspace. Another user's documents return 404.
 - Works with Arabic text, stored as Unicode end to end.
+- **Benchmark:** compare one of your documents with similar documents from other organisations. DocMind suggests pages found on the web, you choose which to compare against, and it returns a gap table: what is covered, partly covered or missing, with suggested wording for each gap. Every "covered" verdict cites a passage of your document.
 
 ## Architecture
 
@@ -27,6 +28,7 @@ flowchart LR
     API --> OCR[Document Intelligence<br/>OCR]
     API --> SEARCH[(Azure AI Search<br/>passages + vectors)]
     API --> AOAI[Azure OpenAI<br/>embeddings + GPT-4o]
+    API -->|benchmark| WEB[Tavily search<br/>and public web pages]
 ```
 
 **Roles of each store.** Blob Storage keeps the original files. Azure SQL is the source of truth for users, workspaces, documents and extracted text. Azure AI Search holds a rebuildable index of passages and vectors.
@@ -38,6 +40,15 @@ flowchart LR
 3. **Answer:** GPT-4o writes only from the numbered passages and cites each claim.
 4. **Verify:** the backend checks every citation. No valid citation means "not found".
 
+## How benchmarking works
+
+1. **Find:** the model describes your document and writes search queries. Tavily web search returns candidate pages, which you review and choose (up to four), or you add an address yourself.
+2. **Read:** each chosen page or PDF is downloaded and turned into text. The download is restricted because the address comes from a user: only http/https on the standard ports, no private or internal network addresses (the connection goes to the address that was checked), every redirect re-checked, and limits on size and time.
+3. **Compare:** the model lists what each source provides and merges the lists into one checklist. For every item DocMind retrieves the best matching passages from your document and the model judges them.
+4. **Verify:** a covered or partly covered verdict is kept only if it cites a real passage that was retrieved for that item; otherwise it is shown as missing.
+
+Limits: sites that block automated access or need scripts or a login cannot be read (the screen says why, and you can pick another page). The result is guidance, not a verdict: check each suggestion against the source.
+
 ## Tech stack
 
 | Area | Technology |
@@ -47,6 +58,7 @@ flowchart LR
 | Hosting | Azure Container Apps (API), Azure Static Web Apps (web app), Azure Container Registry |
 | Data | Azure Blob Storage, Azure SQL, Azure AI Search |
 | AI | Azure OpenAI (GPT-4o, embeddings), Azure AI Document Intelligence |
+| Web search | Tavily (free plan), key stored as a Container Apps secret |
 | Identity | Microsoft Entra External ID |
 | Infrastructure as code | Terraform |
 | CI/CD | GitHub Actions with passwordless Azure sign-in (OIDC) |
@@ -82,6 +94,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Benchmarking uses a local stand-in (made-up search results, no language model) unless `WEB_SEARCH_BACKEND=tavily` and `TAVILY_API_KEY` are set. In the cloud the key comes from the `tavily_api_key` Terraform variable, kept in the git-ignored `terraform.tfvars`.
 
 Backend settings are read in `backend/app/config.py`, and the frontend variables are listed in `frontend/.env.example`.
 
