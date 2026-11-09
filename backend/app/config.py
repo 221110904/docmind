@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     azure_openai_chat_deployment: str = "gpt-4o"
     qa_max_context_chars: int = 12000
 
+    # Benchmarking: peers are found by web search. "fake" returns made-up addresses;
+    # "tavily" uses the Tavily API (the key must come from a secret, never from code).
+    web_search_backend: str = "fake"
+    tavily_api_key: str = ""
+    benchmark_max_sources: int = 4
+    benchmark_max_items: int = 20
+    benchmark_source_chars: int = 24000
     # Websites allowed to call the API from a browser (comma-separated)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

@@ -15,6 +15,8 @@ os.environ.update(
     AZURE_OPENAI_KEY="",
     AZURE_SEARCH_ENDPOINT="",
     AZURE_SEARCH_KEY="",
+    WEB_SEARCH_BACKEND="fake",
+    TAVILY_API_KEY="",
     QA_BACKEND="fake",
     CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173",
     AUTH_BACKEND="none",
