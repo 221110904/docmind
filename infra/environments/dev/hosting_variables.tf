@@ -33,3 +33,10 @@ variable "entra_api_client_id" {
   type        = string
   default     = "843c3324-8ed5-4039-8a83-bc1a1e22cf3b"
 }
+
+variable "tavily_api_key" {
+  description = "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"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

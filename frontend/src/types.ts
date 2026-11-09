@@ -49,3 +49,56 @@ export interface AskOut {
   found: boolean;
   sources: Source[];
 }
+
+export interface Candidate {
+  title: string;
+  url: string;
+  domain: string;
+  snippet: string;
+}
+
+export interface CandidatesOut {
+  topic: string;
+  queries: string[];
+  candidates: Candidate[];
+}
+
+export interface BenchEvidence {
+  page_number: number;
+  label: string;
+  content: string;
+}
+
+export interface BenchPeer {
+  source: number;
+  title: string;
+  url: string;
+  page: number | null;
+}
+
+export type BenchStatus = "covered" | "partial" | "missing";
+
+export interface BenchItem {
+  topic: string;
+  status: BenchStatus;
+  expected: string;
+  gap: string;
+  suggested_edit: string;
+  your_evidence: BenchEvidence[];
+  peers: BenchPeer[];
+}
+
+export interface BenchSource {
+  number: number;
+  title: string;
+  url: string;
+  status: "read" | "failed";
+  detail: string | null;
+  truncated: boolean;
+}
+
+export interface BenchmarkOut {
+  summary: { covered: number; partial: number; missing: number; total: number };
+  items: BenchItem[];
+  sources: BenchSource[];
+}

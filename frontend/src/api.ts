@@ -1,4 +1,4 @@
-import type { AskOut, DocumentOut, IndexOut, ProcessOut, SearchHit } from "./types";
+import type { AskOut, BenchmarkOut, CandidatesOut, DocumentOut, IndexOut, ProcessOut, SearchHit } from "./types";
 
 export const API_URL: string = (
   import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000"
@@ -98,6 +98,10 @@ export const api = {
       top_k: topK,
       ...(documentId ? { document_id: documentId } : {}),
     }),
+  benchmarkCandidates: (documentId: string) =>
+    postJson<CandidatesOut>("/benchmark/candidates", { document_id: documentId }),
+  benchmarkRun: (documentId: string, urls: string[]) =>
+    postJson<BenchmarkOut>("/benchmark/run", { document_id: documentId, urls }),
 };
 
 export type Api = typeof api;

@@ -6,13 +6,15 @@ import { Documents } from "./components/Documents";
 import { Search } from "./components/Search";
 import { SignIn } from "./components/SignIn";
 import type { DocumentOut } from "./types";
+import { Benchmark } from "./components/Benchmark";
 
-type View = "ask" | "search" | "documents";
+type View = "ask" | "search" | "documents" | "benchmark";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "ask", label: "Ask" },
   { id: "search", label: "Search" },
   { id: "documents", label: "Documents" },
+  { id: "benchmark", label: "Benchmark" },
 ];
 
 function viewFromHash(): View {
@@ -109,6 +111,7 @@ export function App() {
             {view === "ask" && <Ask docs={docs} loaded={loaded} />}
             {view === "search" && <Search docs={docs} loaded={loaded} />}
             {view === "documents" && <Documents docs={docs} onChange={reload} />}
+            {view === "benchmark" && <Benchmark docs={docs} loaded={loaded} />}
           </>
         )}
       </main>

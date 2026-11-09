@@ -126,6 +126,11 @@ resource "azurerm_container_app" "backend" {
     value = coalesce(one(module.documentintelligence[*].primary_key), "none")
   }
 
+  secret {
+    name  = "tavily-key"
+    value = coalesce(var.tavily_api_key, "none")
+  }
+
   ingress {
     external_enabled = true
     target_port      = 8000
@@ -233,6 +238,14 @@ resource "azurerm_container_app" "backend" {
         value = "https://${azurerm_static_web_app.frontend[0].default_host_name}"
       }
     }
+      env {
+        name  = "WEB_SEARCH_BACKEND"
+        value = var.tavily_api_key != "" ? "tavily" : "fake"
+      }
+      env {
+        name        = "TAVILY_API_KEY"
+        secret_name = "tavily-key"
+      }
   }
 
   lifecycle {
