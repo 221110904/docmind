@@ -237,7 +237,6 @@ resource "azurerm_container_app" "backend" {
         name  = "CORS_ORIGINS"
         value = "https://${azurerm_static_web_app.frontend[0].default_host_name}"
       }
-    }
       env {
         name  = "WEB_SEARCH_BACKEND"
         value = var.tavily_api_key != "" ? "tavily" : "fake"
@@ -246,6 +245,7 @@ resource "azurerm_container_app" "backend" {
         name        = "TAVILY_API_KEY"
         secret_name = "tavily-key"
       }
+    }
   }
 
   lifecycle {
