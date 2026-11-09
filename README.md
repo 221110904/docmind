@@ -1,3 +1,12 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/brand/docmind-logo-horizontal-on-dark.svg">
+    <img alt="DocMind" src="frontend/public/brand/docmind-logo-horizontal-on-light.svg" width="360">
+  </picture>
+</p>
+
+<p align="center"><b>No source? No answer.</b></p>
+
 # DocMind
 
 **Cloud-native semantic document search with cited answers.** Upload your documents, ask questions in English or Arabic, and get answers that point to the exact page they came from. When the documents don't contain the answer, DocMind says so instead of guessing.
@@ -133,3 +142,5 @@ evaluation/   Question set, run script, results
 ## License
 
 Academic project, Senior Capstone.
+
+The DocMind logo, colours and design tokens are licensed under CC BY 4.0. Credit: "DocMind brand by Faisal Alrabiah and Majed Barri".
