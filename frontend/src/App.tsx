@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "./api";
 import { useAuth } from "./auth/AuthContext";
 import { Ask } from "./components/Ask";
+import { Benchmark } from "./components/Benchmark";
 import { Documents } from "./components/Documents";
 import { Search } from "./components/Search";
 import { SignIn } from "./components/SignIn";
 import type { DocumentOut } from "./types";
-import { Benchmark } from "./components/Benchmark";
 
 type View = "ask" | "search" | "documents" | "benchmark";
 
@@ -62,8 +62,12 @@ export function App() {
       <header className="bar">
         <div className="bar-inner">
           <a className="wordmark" href="#ask">
-            DocMind
-          </a>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcSet="/brand/docmind-logo-horizontal-on-light.svg" />
+    <img src="/brand/docmind-logo-horizontal-on-dark.svg" alt="" width={117} height={30} />
+  </picture>
+  <span className="sr-only">DocMind</span>
+</a>
           {ready && (
             <nav aria-label="Main">
               {VIEWS.map((v) => (

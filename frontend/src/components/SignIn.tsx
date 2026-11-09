@@ -1,4 +1,5 @@
 import { useAuth } from "../auth/AuthContext";
+import { BrandMark } from "./BrandMark";
 
 export function SignIn() {
   const auth = useAuth();
@@ -13,7 +14,12 @@ export function SignIn() {
 
   return (
     <section className="signin" aria-labelledby="signin-title">
+      <div className="corners" aria-hidden="true" />
+      <BrandMark size={72} />
       <h1 id="signin-title">Sign in to DocMind</h1>
+      <p className="tagline">
+        No source? <span>No answer.</span>
+      </p>
       <p className="lede">
         Your documents and questions are private to your account. Nobody else can see them.
       </p>
